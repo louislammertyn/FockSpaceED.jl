@@ -1,0 +1,14 @@
+# Julia compiled files
+*.ji
+*.so
+*.dylib
+*.dll
+
+# Temporary files
+*.tmp
+
+# Package manager artifacts
+Manifest.toml
+
+# VSCode settings (if you want)
+.vscode/
