@@ -5,7 +5,7 @@ using LinearAlgebra
 using Plots
 using ProgressMeter
 
-
+pd_gap = zeros(14,20)
 pd = zeros(14,20)
 @showprogress for n in 2:15, ju in 1:20
 U = 1
@@ -45,7 +45,7 @@ M = calculate_matrix_elements_parallel(states,H)
 
 es, vs = eigen(Hermitian(M))
 gs_coeff = vs[:,1]
-
+pd_gap[(n-1),ju] =  (es[2]- es[1]) 
 gs = create_MFS(states, gs_coeff)
 
 ρ = zeros(3,3)
@@ -58,4 +58,5 @@ es_rho, vs_rho = eigen(ρ)
 pd[(n-1),ju] = es_rho[end] / n
 end
 heatmap(collect(1:20 ) .* 0.02, collect(2:15), pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
+heatmap(collect(1:20 ) .* 0.02, collect(2:15), pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")
 
