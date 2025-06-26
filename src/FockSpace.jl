@@ -1,9 +1,11 @@
 module FockSpace
 using LinearAlgebra
+using DifferentialEquations
 
 include("./FockStates.jl")
 include("./FockOps.jl")
 include("./LatticeGeo.jl")
+include("./TimeEv.jl")
 #####################################################################################################
 #####################################################################################################
 
@@ -33,6 +35,10 @@ export apply!
 
 export vectorise_lattice, lattice_vectorisation_map, Lattice_NN
 
+#####################################################################################################
+#####################################################################################################
+
+export Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!
 
 
 end

@@ -5,12 +5,15 @@ using LinearAlgebra
 using Plots
 using ProgressMeter
 
-J = 0.01
-U = 1.
-eigen([1 0; 3 2])
 
-N = 8
-geometry = (4,)
+pd = zeros(14,20)
+@showprogress for n in 2:15, ju in 1:20
+U = 1
+J = (ju*0.02) * U
+
+
+N = n
+geometry = (3,)
 D=length(geometry)
 
 V = U1FockSpace(prod(geometry),N,N)
@@ -38,9 +41,21 @@ for site in keys(NN)
     H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U)
 end
 
-M = calculate_matrix_elements(states,H)
+M = calculate_matrix_elements_parallel(states,H)
 
-es, vs = eigen(M)
-es
-vs[:,1]
-plot(1:length(vs[:,1]), abs2.(vs[:,1]))
+es, vs = eigen(Hermitian(M))
+gs_coeff = vs[:,1]
+
+gs = create_MFS(states, gs_coeff)
+
+ρ = zeros(3,3)
+
+for i in 1:3, j in 1:3
+    ρ_ij = FockOperator(((i, true), (j,false)), 1. +0im)
+    ρ[i,j] = gs * (ρ_ij*gs)
+end
+es_rho, vs_rho = eigen(ρ)
+pd[(n-1),ju] = es_rho[end] / n
+end
+heatmap(collect(1:20 ) .* 0.02, collect(2:15), pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
+
