@@ -1,10 +1,10 @@
-"""
-This file contains implementation of a selection of common Fock Operators.
-The first function calculates the general many-body wavefunction coefficient tensor as in the expression |ψ⟩ = ∑ Cₙₘₗ |n,m,l⟩
-Further impementations include:
-    - The 1-body density operator.
-    - The Entanglement Entropy.
-"""
+#####
+#This file contains implementation of a selection of common Fock Operators.
+#The first function calculates the general many-body wavefunction coefficient tensor as in the expression |ψ⟩ = ∑ Cₙₘₗ |n,m,l⟩
+#Further impementations include:
+#    - The 1-body density operator.
+#    - The Entanglement Entropy.
+
 begin
     
 function MB_tensor(MBstate::MultipleFockState )
