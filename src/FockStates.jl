@@ -313,17 +313,6 @@ function bounded_compositions(N, L, cutoff)
     return result
 end
 
-function create_MFS(states::Vector{AbstractFockState}, coefficients::Vector{ComplexF64})
-    total_state = ZeroFockState()
-    for (i,c) in enumerate(coefficients)
-        state = states[i] * (1/states[i].coefficient)
-        total_state += c * state
-    end
-    return cleanup_FS(total_state)
-end
-
-
-
 
 ################### 6. MutableFockState functionalities ###################
 function MutableFockState(fs::FockState)
@@ -364,6 +353,15 @@ function mu_Mutable!(mfs::MutableFockState, c::Number)
     mul_Mutable!(c, mfs)
 end
 
+function create_MFS(coefficients::Vector{ComplexF64}, states::Vector{AbstractFockState})
+    total_state = ZeroFockState()
+    for (i,c) in enumerate(coefficients)
+        state = states[i] * (1/states[i].coefficient)
+        total_state += c * state
+    end
+    return cleanup_FS(total_state)
+end
+
 function a_j!(state::MutableFockState, j::Int)
     if j < 1 || j > length(state.occupations)
         error("Mode $j out of bounds")
@@ -391,16 +389,3 @@ function ad_j!(state::MutableFockState, j::Int)
     end
 end
 end;
-
-
-
-
-
-
-
-a = 1.0 + 2.0im
-b = a
-b += 1.0im
-
-println(a)  # still 1.0 + 2.0im
-println(b) 

@@ -5,9 +5,12 @@ using LinearAlgebra
 using Plots
 using ProgressMeter
 
-pd_gap = zeros(14,20)
-pd = zeros(14,20)
-@showprogress for n in 2:15, ju in 1:20
+Nrange = 1:10
+jurange = 1:10
+pd_gap = zeros(Nrange[end],jurange[end])
+pd = zeros(Nrange[end],jurange[end])
+
+@showprogress for n in Nrange, ju in jurange
 U = 1
 J = (ju*0.02) * U
 
@@ -57,6 +60,54 @@ end
 es_rho, vs_rho = eigen(ρ)
 pd[(n-1),ju] = es_rho[end] / n
 end
-heatmap(collect(1:20 ) .* 0.02, collect(2:15), pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
-heatmap(collect(1:20 ) .* 0.02, collect(2:15), pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")
+heatmap(collect(jurange ) .* 0.02, collect(Nrange), pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
+heatmap(collect(jurange ) .* 0.02, collect(Nrange), pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")
 
+
+
+
+#####
+
+
+U = 1
+J = 1* U
+
+
+N = 5
+geometry = (6,)
+D=length(geometry)
+
+V = U1FockSpace(prod(geometry),N,N)
+states = all_states_U1(geometry, V)
+
+sites = lattice_vectorisation_map(geometry)
+NN = Lattice_NN(geometry; periodic=(false,))
+
+hoppings = zeros(ComplexF64, ntuple(i->geometry[mod(i,D)+1] , 2*D))
+for site in keys(NN), n in NN[site]
+    index = (site..., n...)
+    hoppings[index...] = J
+end 
+
+H = ZeroFockOperator()
+
+for site in keys(NN)
+    for n in NN[site]
+        index = (site..., n...)
+        H += FockOperator(((sites[site], true), (sites[n], false)), hoppings[index...])
+    end
+end
+for site in keys(NN)
+    i = sites[site]
+    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U)
+end
+
+M = calculate_matrix_elements_parallel(states,H)
+
+es, vs = eigen(Hermitian(M))
+gs = create_MFS(vs[:,1], states)
+
+density_onsite(gs, sites, geometry)
+es, _ = eigen(one_body_ρ(gs, sites, geometry))
+density_flucs(gs, sites, geometry)
+rho = one_body_ρ(gs, sites, geometry)
