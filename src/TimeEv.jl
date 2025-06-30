@@ -28,3 +28,22 @@ function Time_Evolution(init::Vector{ComplexF64}, H, tspan; rtol = 1e-9, atol = 
     return sol
 end
 
+function Time_Evolution_ed(Ops_dict, t0, t1, δt)
+    times = t0:δt:t1
+    U = I
+    for t in times
+        H = ZeroFockOperator()
+        for O in keys(Ops_dict)
+            if Ops_dict[O] ==1.
+                H += O 
+            else
+                H += Ops_dict[O](t) * O 
+            end
+        end
+        es, vs = eigen(H)
+        U_step = vs * Diagonal(exp.(-im * es * δt)) * vs'
+        U = U_step * U  # right-multiplication for forward time evolution
+    end
+    return U
+end
+
