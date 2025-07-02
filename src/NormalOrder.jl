@@ -1,3 +1,6 @@
+
+begin
+
 abstract type AbstractFockString end
 
 mutable struct SameSiteString <: AbstractFockString
@@ -96,3 +99,17 @@ function normal_order(O::FockOperator)
     return result
     
 end
+
+function normal_order(Os::MultipleFockOperator)
+    new_Os = ZeroFockOperator()
+    for o in Os.terms
+        new_Os += normal_order(o)
+    end
+    return new_Os
+end
+
+function commutator(O1::AbstractFockOperator, O2::AbstractFockOperator)
+    return normal_order(O1 * O2) - normal_order(O2 * O1)
+end
+
+end;

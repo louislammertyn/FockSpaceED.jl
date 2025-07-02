@@ -36,7 +36,7 @@ export apply!
 #####################################################################################################
 
 export AbstractFockString, SameSiteString, MultiSiteString
-export commute_first!, normal_order!, _normal_order!, normal_order
+export commute_first!, normal_order!, _normal_order!, normal_order, commutator
 
 #####################################################################################################
 #####################################################################################################
