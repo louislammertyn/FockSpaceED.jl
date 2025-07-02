@@ -6,7 +6,7 @@
 # Each tuple corresponds to an (i,a/ad) with position i and {ad <-> true, a <-> false}
 # The order of the tuple corresponds to the way we read the states on paper i.e. THE LAST TUPLE WILL BE THE ONE TO ACT FIRST ON THE STATE
 # There is also a coefficient for the term
-# Example:  θ = c1 * ad_1 * ad_2 * a_3 * a_2 * ad_6    <->     θ = FockOperator[(   (1, true),(2, true),(3, false), (2, false),(6,true)), c1]
+# Example:  θ = c1 * ad_1 * ad_2 * a_3 * a_2 * ad_6    <->     θ = FockOperator[( (1, true), (2, true), (3, false), (2, false), (6,true) ), c1]
 # MultipleFockOperator represents sums of FockOperator types
 begin
 
@@ -85,6 +85,38 @@ function Base.:*(c::Number, mop::MultipleFockOperator)
 end
 
 Base.:*(mop::MultipleFockOperator, c::Number) = c * mop
+
+# Multiplying operators
+function Base.:*(Op1::FockOperator, Op2::FockOperator)
+    factors1 = collect(Op1.product)
+    factors2 = collect(Op2.product)
+    new_factor = hcat(factors1, factors2)
+    return FockOperator(new_factor, Op1.coefficient * Op2.coefficient)
+end
+
+function Base.:*(MOp::MultipleFockOperator, Op::FockOperator)
+    terms = Vector{FockOperator}()
+    for O in MOp.terms
+        push!(terms, O * Op)
+    end
+    return MultipleFockOperator(terms)
+end
+
+function Base.:*(Op::FockOperator, MOp::MultipleFockOperator)
+    terms = Vector{FockOperator}()
+    for O in MOp.terms
+        push!(terms, Op * O)
+    end
+    return MultipleFockOperator(terms)
+end
+
+function Base.:*(MOp1::MultipleFockOperator, MOp2::MultipleFockOperator)
+    terms = Vector{FockOperator}()
+    for O1 in MOp1.terms, O2 in MOp2.terms
+        push!(terms, O1 * O2)
+    end
+    return MultipleFockOperator(terms)
+end
 
 ########## Utilities ##########
 function Base.copy(op::FockOperator)

@@ -49,7 +49,7 @@ function Entanglement_Entropy(C::Array{ComplexF64, N}, cut::Int64) where N
     
     # Von Neumann entropy
     S_ent = -sum(p[p .> 0] .* log.(p[p .> 0])) # eps to avoid log(0)
-    return S_ent
+    return S_ent, S
 end
 
 function density_onsite(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
