@@ -25,6 +25,12 @@ end
 struct ZeroFockOperator <: AbstractFockOperator
 end
 
+# empty product means identity
+
+function identity_fockoperator(c::ComplexF64=1.0)
+    FockOperator(NTuple{0, Tuple{Int,Bool}}() , c) 
+end
+
 Base.:+(z::ZeroFockOperator, s::FockOperator) = s
 Base.:+(s::FockOperator, z::ZeroFockOperator) = s
 Base.:+(z::ZeroFockOperator, ms::MultipleFockOperator) = ms
@@ -39,6 +45,32 @@ Base.:*(z1::ZeroFockOperator, z2::ZeroFockOperator) = 0
 Base.:*(z::ZeroFockOperator, s::FockOperator) = 0
 Base.:*(s::FockOperator, z::ZeroFockOperator) = 0
 
+######## Pretty printing #########
+function Base.show(io::IO, op::FockOperator)
+    str = op.coefficient == 1 + 0im ? "" : string("($(op.coefficient))", " ⋅ ")
+
+    # Build readable string
+    for (site, is_creation) in op.product
+        str *= is_creation ? "cr($site)" : "ann($site)"
+        str *= " "
+    end
+
+    print(io, strip(str))
+end
+
+function Base.show(io::IO, mop::MultipleFockOperator)
+    if isempty(mop.terms)
+        print(io, "0")
+        return
+    end
+
+    for (i, term) in enumerate(mop.terms)
+        if i > 1
+            print(io, " + ")
+        end
+        print(io, term)
+    end
+end
 
 ########## Basic operations ##########
 Base.:+(op1::FockOperator, op2::FockOperator) =

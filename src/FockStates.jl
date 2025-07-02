@@ -45,6 +45,41 @@ mutable struct MutableFockState <: AbstractFockState
     space::AbstractFockSpace
 end
 
+########## 0. Pretty printing ###########
+# Single Fock state
+function Base.show(io::IO, s::FockState)
+    occ_str = join(s.occupations, ", ")
+    coeff_str = s.coefficient == 1 + 0im ? "" : string("($(s.coefficient))", " ⋅ ")
+    print(io, coeff_str * "|", occ_str, "⟩")
+end
+
+# Multiple Fock states (sum)
+function Base.show(io::IO, ms::MultipleFockState)
+    if isempty(ms.states)
+        print(io, "0")
+        return
+    end
+
+    for (i, st) in enumerate(ms.states)
+        if i > 1
+            print(io, " + ")
+        end
+        print(io, st)
+    end
+end
+
+# Zero state (vacuum)
+function Base.show(io::IO, ::ZeroFockState)
+    print(io, "0")
+end
+
+# MutableFockState (similar to FockState)
+function Base.show(io::IO, s::MutableFockState)
+    occ_str = join(s.occupations, ", ")
+    coeff_str = s.coefficient == 1 + 0im ? "" : string("($(s.coefficient))", " ⋅ ")
+    print(io, coeff_str * "|", occ_str, "⟩")
+end
+
 ########## 1. Basic operations ##########
 # we start with the neutral element
 Base.:+(z::ZeroFockState,z2::ZeroFockState)=z

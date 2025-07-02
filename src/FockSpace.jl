@@ -4,6 +4,7 @@ using DifferentialEquations
 
 include("./FockStates.jl")
 include("./FockOps.jl")
+include("./NormalOrder.jl")
 include("./LatticeGeo.jl")
 include("./TimeEv.jl")
 include("./CommonOps.jl")
@@ -25,11 +26,17 @@ export a_j!, ad_j!
 #####################################################################################################
 
 
-export AbstractFockOperator, FockOperator, MultipleFockOperator, ZeroFockOperator
+export AbstractFockOperator, FockOperator, MultipleFockOperator, ZeroFockOperator, identity_fockoperator
 export calculate_matrix_elements,  calculate_matrix_elements_naive, calculate_matrix_elements_parallel, tuple_vector_equal
 export sparseness
 export cleanup_FO, dagger_FO
 export apply!
+
+#####################################################################################################
+#####################################################################################################
+
+export AbstractFockString, SameSiteString, MultiSiteString
+export commute_first!, normal_order!, _normal_order!, normal_order
 
 #####################################################################################################
 #####################################################################################################
