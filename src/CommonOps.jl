@@ -72,10 +72,10 @@ function density_flucs(state::AbstractFockState, sites::Dict, geometry::NTuple{D
 end
 
 function one_body_ρ(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
-    size_m = Tuple(hcat(collect(geometry), collect(geometry)))
+    size_m = Tuple(vcat(collect(geometry), collect(geometry)))
     ρ = zeros(ComplexF64, size_m)
     for s1 in keys(sites), s2 in keys(sites)
-        ind = hcat(collect(s1), collect(s2))
+        ind = vcat(collect(s1), collect(s2))
         Op = FockOperator(((sites[s1], true), (sites[s2], false)), 1. + 0im) 
         ρ[ind...] = state * (Op * state)
     end
