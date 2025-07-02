@@ -10,3 +10,7 @@ commutator(O1, O2)
 
 ad = FockOperator(((1, true),), 2. + 0im)
 a = FockOperator(((1, false),), 1. + 0im)
+
+V = U1FockSpace(3, 3, 6)
+s = fock_state(V, [1, 2, 3], 2.)
+commutator(a, ad) * s
