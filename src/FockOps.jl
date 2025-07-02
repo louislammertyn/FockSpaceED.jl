@@ -90,8 +90,8 @@ Base.:*(mop::MultipleFockOperator, c::Number) = c * mop
 function Base.:*(Op1::FockOperator, Op2::FockOperator)
     factors1 = collect(Op1.product)
     factors2 = collect(Op2.product)
-    new_factor = hcat(factors1, factors2)
-    return FockOperator(new_factor, Op1.coefficient * Op2.coefficient)
+    new_factor = vcat(factors1, factors2)
+    return FockOperator(Tuple(new_factor), Op1.coefficient * Op2.coefficient)
 end
 
 function Base.:*(MOp::MultipleFockOperator, Op::FockOperator)
