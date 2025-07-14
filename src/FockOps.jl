@@ -72,11 +72,11 @@ function Base.show(io::IO, mop::MultipleFockOperator)
 end
 
 ########## Basic operations ##########
-Base.size(Op::FockOperator) = prod(Op.space.geometry)
+Base.size(Op::FockOperator) = (prod(Op.space.geometry), prod(Op.space.geometry))
 
 Base.size(Op::MultipleFockOperator) = size(Op.terms[1])
 
-Base.eltype(Op::AbstractFockOperator) = ComplexF64
+Base.eltype(Op::AbstractFockOperator) = typeof(Op.coefficient)
 
 Base.:+(op1::FockOperator, op2::FockOperator) =
     op1.product == op2.product ? cleanup_FO(FockOperator(op1.product, op1.coefficient + op2.coefficient, op1.space)) : MultipleFockOperator([op1, op2]);
