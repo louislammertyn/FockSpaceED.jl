@@ -13,6 +13,7 @@ abstract type AbstractFockOperator end
 struct FockOperator <: AbstractFockOperator
     product::NTuple{N, Tuple{Int,Bool}} where N 
     coefficient::ComplexF64
+    space::AbstractFockSpace
 end
 
 mutable struct MultipleFockOperator <: AbstractFockOperator
@@ -25,8 +26,8 @@ end
 
 # empty product means identity
 
-function identity_fockoperator(c::ComplexF64=1.0)
-    FockOperator(NTuple{0, Tuple{Int,Bool}}() , c) 
+function identity_fockoperator(c::ComplexF64=1.0, V::AbstractFockSpace)
+    FockOperator(NTuple{0, Tuple{Int,Bool}}() , c, V) 
 end
 
 Base.:+(z::ZeroFockOperator, s::FockOperator) = s
@@ -71,17 +72,23 @@ function Base.show(io::IO, mop::MultipleFockOperator)
 end
 
 ########## Basic operations ##########
-Base.:+(op1::FockOperator, op2::FockOperator) =
-    op1.product == op2.product ? cleanup_FO(FockOperator(op1.product, op1.coefficient + op2.coefficient)) : MultipleFockOperator([op1, op2])
+Base.size(Op::FockOperator) = prod(Op.space.geometry)
 
-Base.:-(op1::FockOperator, op2::FockOperator) = op1 + FockOperator(op2.product, -op2.coefficient)
+Base.size(Op::MultipleFockOperator) = size(Op.terms[1])
+
+Base.eltype(Op::AbstractFockOperator) = ComplexF64
+
+Base.:+(op1::FockOperator, op2::FockOperator) =
+    op1.product == op2.product ? cleanup_FO(FockOperator(op1.product, op1.coefficient + op2.coefficient, op1.space)) : MultipleFockOperator([op1, op2]);
+
+Base.:-(op1::FockOperator, op2::FockOperator) = op1 + FockOperator(op2.product, -op2.coefficient, op2.space)
 
 function Base.:+(op::FockOperator, mop::MultipleFockOperator)
     new_terms = copy(mop.terms)
     matched = false
     for i in eachindex(new_terms)
         if new_terms[i].product == op.product
-            new_terms[i] = FockOperator(op.product, new_terms[i].coefficient + op.coefficient)
+            new_terms[i] = FockOperator(op.product, new_terms[i].coefficient + op.coefficient, op.space)
             matched = true
             break
         end
@@ -93,7 +100,7 @@ function Base.:+(op::FockOperator, mop::MultipleFockOperator)
 end
 
 Base.:+(mop::MultipleFockOperator, op::FockOperator) = op + mop
-Base.:-(mop::MultipleFockOperator, op::FockOperator) = mop + FockOperator(op.product, -op.coefficient)
+Base.:-(mop::MultipleFockOperator, op::FockOperator) = mop + FockOperator(op.product, -op.coefficient, op.space)
 Base.:-(op::FockOperator, mop::MultipleFockOperator) = (-1) * mop + op
 
 function Base.:+(mop1::MultipleFockOperator, mop2::MultipleFockOperator)
@@ -106,7 +113,7 @@ end
 
 Base.:-(mop1::MultipleFockOperator, mop2::MultipleFockOperator) = mop1 + (-1) * mop2
 
-Base.:*(c::Number, op::FockOperator) = FockOperator(op.product, c * op.coefficient)
+Base.:*(c::Number, op::FockOperator) = FockOperator(op.product, c * op.coefficient, op.space)
 Base.:*(op::FockOperator, c::Number) = c * op
 
 function Base.:*(c::Number, mop::MultipleFockOperator)
@@ -121,7 +128,7 @@ function Base.:*(Op1::FockOperator, Op2::FockOperator)
     factors1 = collect(Op1.product)
     factors2 = collect(Op2.product)
     new_factor = vcat(factors1, factors2)
-    return FockOperator(Tuple(new_factor), Op1.coefficient * Op2.coefficient)
+    return FockOperator(Tuple(new_factor), Op1.coefficient * Op2.coefficient, Op1.space)
 end
 
 function Base.:*(MOp::MultipleFockOperator, Op::FockOperator)
@@ -150,7 +157,7 @@ end
 
 ########## Utilities ##########
 function Base.copy(op::FockOperator)
-    return FockOperator(op.product, op.coefficient)
+    return FockOperator(op.product, op.coefficient, op.space)
 end
 
 Base.copy(mop::MultipleFockOperator) = MultipleFockOperator(copy(mop.terms))
@@ -180,7 +187,7 @@ function dagger_FO(Op::FockOperator)
         tup = (o[1],!o[2])
         push!(new_terms, tup)
     end
-    return FockOperator(Tuple(new_terms), c_dag)
+    return FockOperator(Tuple(new_terms), c_dag, Op.space)
 end
 
 function dagger_FO(Ops::MultipleFockOperator)
