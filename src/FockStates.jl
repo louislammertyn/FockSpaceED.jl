@@ -33,7 +33,7 @@ end
 dimension(ufs::U1FockSpace) = prod(ufs.geometry) * (min(ufs.cutoff, ufs.particle_number))
 dimension(ufs::UnrestrictedFockSpace) = prod(ufs.geometry) * ufs.cutoff
 
-function basis(space::U1FockSpace; nodata=false)
+function basisFS(space::U1FockSpace; nodata=false)
     savename = "basis_u1_geom=$(join(space.geometry, 'x'))_cutoff=$(space.cutoff)_N=$(space.particle_number).jld2"
     if  (savename ∈ readdir("./src/assets/states")) & !nodata
         data = load("./src/assets/states/$savename")
@@ -109,6 +109,7 @@ end
 
 ########## 1. Basic operations ##########
 # we start with the neutral element
+Base.zero(s::AbstractFockState) = ZeroFockState()
 Base.:+(z::ZeroFockState,z2::ZeroFockState)=z
 Base.:+(z::ZeroFockState, s::FockState) = s
 Base.:+(s::FockState, z::ZeroFockState) = s
@@ -210,6 +211,13 @@ function Base.:*(mstate1::MultipleFockState, mstate2::MultipleFockState)
     end
     return c
 end
+
+# Define VectorInterface.jl necessities
+VectorInterface.similar(x::AbstractFockState) = MyVec(zeros(length(x.data)))
+VectorInterface.copy!(y::MyVec, x::MyVec) = (y.data .= x.data; y)
+VectorInterface.dot(x::MyVec, y::MyVec) = dot(x.data, y.data)
+VectorInterface.axpy!(α, x::MyVec, y::MyVec) = (y.data .+= α .* x.data; y)
+VectorInterface.scale!(α, x::MyVec) = (x.data .*= α; x)
 
 ######### 2. Basic states instantiation and functionalities ########
 # Create a multi-mode basis state |n₁, n₂, ..., n_N⟩
@@ -463,4 +471,12 @@ function ad_j!(state::MutableFockState, j::Int)
         
     end
 end
+
+###################### Krylov Method functions #########################
+function rand_superpos(basis::Vector{AbstractFockState})
+    n_basis = rand(ComplexF64, length(basis)) .* basis |> MultipleFockState
+    norm = n_basis |> norm2FS |> sqrt
+    return  n_basis * (1/norm)
+end
+
 end;

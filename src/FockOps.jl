@@ -26,7 +26,7 @@ end
 
 # empty product means identity
 
-function identity_fockoperator(c::ComplexF64=1.0, V::AbstractFockSpace)
+function identity_fockoperator(V::AbstractFockSpace, c::ComplexF64=1.0)
     FockOperator(NTuple{0, Tuple{Int,Bool}}() , c, V) 
 end
 
@@ -76,7 +76,7 @@ Base.size(Op::FockOperator) = (prod(Op.space.geometry), prod(Op.space.geometry))
 
 Base.size(Op::MultipleFockOperator) = size(Op.terms[1])
 
-Base.eltype(Op::AbstractFockOperator) = typeof(Op.coefficient)
+Base.eltype(Op::AbstractFockOperator) = ComplexF64
 
 Base.:+(op1::FockOperator, op2::FockOperator) =
     op1.product == op2.product ? cleanup_FO(FockOperator(op1.product, op1.coefficient + op2.coefficient, op1.space)) : MultipleFockOperator([op1, op2]);
