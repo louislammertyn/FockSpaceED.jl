@@ -12,3 +12,6 @@ Manifest.toml
 
 # VSCode settings (if you want)
 .vscode/
+
+# personal assets
+/src/assets/states/*

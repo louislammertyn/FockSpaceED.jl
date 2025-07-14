@@ -1,6 +1,3 @@
-
-
-
 begin
 
 ########## Definition of objects ##########
@@ -11,16 +8,46 @@ begin
 # The single state and the sum of states as a set of single states
 abstract type AbstractFockSpace end
 
-struct U1FockSpace <: AbstractFockSpace
-    num_modes::Int
+struct U1FockSpace{D} <: AbstractFockSpace
+    geometry::NTuple{D, Int}
     cutoff::Int
     particle_number::Int
+    function U1FockSpace(geometry::NTuple{D, Int}, cutoff::Int, particle_number::Int) where D
+        # you can add validation or preprocessing here
+        # For example:
+        if any(x -> x <= 0, geometry)
+            error("All geometry dimensions must be positive")
+        end
+        new{D}(geometry, cutoff, particle_number)
+    end
 end
 
-struct UnrestrictedFockSpace <: AbstractFockSpace
-    num_modes::Int
+struct UnrestrictedFockSpace{D} <: AbstractFockSpace
+    geometry::NTuple{D, Int}
     cutoff::Int
-    
+  
+end
+
+#U1FockSpace(geometry::NTuple{D, Int}, cutoff::Int, particle_number::Int) where D = U1FockSpace{D}(geometry, cutoff, particle_number)
+
+dimension(ufs::U1FockSpace) = prod(ufs.geometry) * (min(ufs.cutoff, ufs.particle_number))
+dimension(ufs::UnrestrictedFockSpace) = prod(ufs.geometry) * ufs.cutoff
+
+function basis(space::U1FockSpace; nodata=false)
+    savename = "basis_u1_geom=$(join(space.geometry, 'x'))_cutoff=$(space.cutoff)_N=$(space.particle_number).jld2"
+    if  (savename ∈ readdir("./src/assets/states")) & !nodata
+        data = load("./src/assets/states/$savename")
+        return data["states"]
+
+    elseif !(savename ∈ readdir("./src/assets/states")) & !nodata
+        states = all_states_U1(space)
+        save("./src/assets/states/$savename", Dict("states"=>states))
+        return states
+
+    elseif !(savename ∈ readdir("./src/assets/states")) & nodata
+        return all_states_U1(space)
+    end
+
 end
 
 abstract type AbstractFockState end
@@ -70,14 +97,14 @@ end
 
 # Zero state (vacuum)
 function Base.show(io::IO, ::ZeroFockState)
-    print(io, "0")
+    print(io, "|0⟩")
 end
 
 # MutableFockState (similar to FockState)
 function Base.show(io::IO, s::MutableFockState)
     occ_str = join(s.occupations, ", ")
     coeff_str = s.coefficient == 1 + 0im ? "" : string("($(s.coefficient))", " ⋅ ")
-    print(io, coeff_str * "|", occ_str, "⟩")
+    print(io, coeff_str * "| ", occ_str, " ⟩")
 end
 
 ########## 1. Basic operations ##########
@@ -188,7 +215,20 @@ end
 # Create a multi-mode basis state |n₁, n₂, ..., n_N⟩
 
 function fock_state(fs::AbstractFockSpace, occs::Vector{Int}, coeff::Number=1. +0im)
-    if length(occs) != fs.num_modes
+    if length(occs) != prod(fs.geometry)
+        error("Occupations must match number of modes")
+    end
+    for n in occs
+        if n < 0 || n > fs.cutoff
+            error("Occupation number out of bounds")
+        end
+    end
+    
+    return FockState(ntuple(i -> occs[i], length(occs)), ComplexF64(coeff), fs)
+end
+
+function fock_state(fs::AbstractFockSpace, occs::Array, coeff::Number=1. +0im)
+    if prod(size(occs)) != prod(fs.geometry)
         error("Occupations must match number of modes")
     end
     for n in occs
@@ -303,9 +343,9 @@ ad_j(state::ZeroFockState ,j) = ZeroFockState()
 
 ############## 4. generating states ####################
 
-function all_states_U1(geometry::NTuple{D,Int}, V::U1FockSpace) where D 
+function all_states_U1(V::U1FockSpace) 
     N= V.particle_number
-    L = prod(geometry)
+    L = prod(V.geometry)
     U1occs = bounded_compositions(N, L, V.cutoff)
     states = Vector{AbstractFockState}()
     for occ in U1occs
@@ -314,9 +354,9 @@ function all_states_U1(geometry::NTuple{D,Int}, V::U1FockSpace) where D
     return states
 end
 
-function all_states_U1(geometry::NTuple{D,Int}, V::UnrestrictedFockSpace) where D 
+function all_states_U1( V::UnrestrictedFockSpace)
     states = []
-    ranges = ntuple(_->0:V.cutoff, prod(geometry))
+    ranges = ntuple(_->0:V.cutoff, prod(V.geometry))
     U1occs = [collect(t) for t in Iterators.product(ranges...)]
     println(U1occs)
     for occ in U1occs

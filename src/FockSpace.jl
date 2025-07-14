@@ -1,6 +1,7 @@
 module FockSpace
 using LinearAlgebra
 using DifferentialEquations
+using JLD2
 
 include("./FockStates.jl")
 include("./FockOps.jl")
@@ -14,7 +15,7 @@ include("./CommonOps.jl")
 
 export AbstractFockSpace, U1FockSpace, UnrestrictedFockSpace,
        AbstractFockState, FockState, MultipleFockState, ZeroFockState
-export fock_state, copy, cleanup_FS, checkU1
+export fock_state, copy, cleanup_FS, checkU1, basis
 export a_j, ad_j
 export norm2FS
 export all_states_U1, create_MFS
@@ -41,7 +42,7 @@ export commute_first!, normal_order!, _normal_order!, normal_order, commutator
 #####################################################################################################
 #####################################################################################################
 
-export vectorise_lattice, lattice_vectorisation_map, Lattice_NN
+export vectorise_lattice, lattice_vectorisation_map, Lattice_NN, vector_to_lattice, Lattice, AbstractLattice
 
 #####################################################################################################
 #####################################################################################################

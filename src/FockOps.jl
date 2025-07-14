@@ -1,6 +1,4 @@
 
-
-
 ############### In this part we define the operators acting on a Fock space ########
 # Each FockOperator consists of a product of creation and annihilation operators encoded as a tuple of tuples. 
 # Each tuple corresponds to an (i,a/ad) with position i and {ad <-> true, a <-> false}
@@ -224,7 +222,7 @@ function apply!(Op::FockOperator, ket::MutableFockState)
         end
     end
     mul_Mutable!(Op.coefficient, ket)
-end
+end    
 
 
 function calculate_matrix_elements(states::Vector{AbstractFockState}, Ops::MultipleFockOperator)
@@ -258,7 +256,7 @@ function tuple_vector_equal(t::NTuple{N, Int}, v::Vector{Int}) where N
     return true
 end
 
-function calculate_matrix_elements_parallel(states, Ops)
+function calculate_matrix_elements_parallel(states::Vector{AbstractFockState}, Ops::MultipleFockOperator)
     n = length(states)
     Op_matrix = zeros(ComplexF64, n, n)
 
@@ -295,7 +293,7 @@ function calculate_matrix_elements_naive(states::Vector{AbstractFockState}, Op::
     return Op_matrix
 end
 
-function sparseness(M)
+function sparseness(M::AbstractMatrix)
     s = 0
     t = 0
     for e in M 

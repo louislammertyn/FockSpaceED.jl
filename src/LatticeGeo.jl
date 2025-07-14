@@ -1,7 +1,26 @@
+begin
 
+abstract type AbstractLattice end
+
+struct Lattice <:AbstractLattice
+    D::Int
+    sites::Dict{Tuple, Int}
+    sites_v::Dict{Int,Tuple}
+    NN::Dict{NTuple{Dim, Int}, Vector{NTuple{Dim,Int}}} where Dim
+
+    function Lattice(geometry::NTuple{D,Int}; periodic::NTuple{D, Bool}=ntuple(i->false,D)) where D
+
+        map_s_v = lattice_vectorisation_map(geometry)
+        map_v_s = vector_to_lattice(map_s_v)
+        NN = Lattice_NN(geometry; periodic)
+
+        return new(D, map_s_v, map_v_s, NN)
+    end 
+
+end
 
 ############### Here we define the lattice functionalities for vectorisation of the lattice ###############
-begin
+
 function vectorise_lattice(x::NTuple{D,Int}, L::NTuple{D,Int}) where D
     idx = 0
     stride = 1
@@ -20,6 +39,8 @@ function lattice_vectorisation_map(geometry::NTuple{D,Int}) where D
     end
     return cartesian_to_vec
 end
+
+vector_to_lattice(d::Dict) = Dict(v => k for (k, v) in d)
 
 function Lattice_NN(geometry::NTuple{D, Int}; periodic::NTuple{D,Bool}=ntuple(i->false,D)) where D
     neighbours = Dict{NTuple{D, Int}, Vector{NTuple{D,Int}}}()
