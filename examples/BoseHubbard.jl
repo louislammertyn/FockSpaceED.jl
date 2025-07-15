@@ -67,62 +67,6 @@ end
 es_rho, vs_rho = eigen(ρ)
 pd[(n),ju] = es_rho[end] / N
 end;
-@time for n in Nrange, ju in jurange
-U = 1
-J = (ju*0.02) * U
-N = n+1
-E_scale = J+ U*N
-
-geometry = (5,)
-D=length(geometry)
-
-V = U1FockSpace(geometry,N,N)
-states = basisFS(V)
-
-latt = Lattice(geometry)
-ind_v = latt.sites
-NN = latt.NN
-
-hoppings = zeros(ComplexF64, ntuple(i->geometry[mod(i,D)+1] , 2*D))
-for site in keys(NN), n in NN[site]
-    index = (site..., n...)
-    hoppings[index...] = J
-end 
-
-H = ZeroFockOperator()
-
-for site in keys(NN)
-    for n in NN[site]
-        index = (site..., n...)
-        H += FockOperator(((ind_v[site], true), (ind_v[n], false)), hoppings[index...], V)
-    end
-end
-for site in keys(NN)
-    i = ind_v[site]
-    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U, V)
-end
-@assert typeof(H - dagger_FO(H)) == ZeroFockOperator
-println(eltype(H))
-s_i = rand_superpos(states)
-es, vs, info = eigsolve(H, s_i, [howmany=3, which=:SR]; ishermitian=true)
-println(es, vs, info)
-break
-#es, vs = eigen(Hermitian(M))
-
-gs_coeff = vs[:,1]
-pd_gap[(n),ju] =  (es[2]- es[1]) / E_scale
-gs = create_MFS( gs_coeff, states)
-
-ρ = zeros(3,3)
-
-for i in 1:3, j in 1:3
-    ρ_ij = FockOperator(((i, true), (j,false)), 1. +0im, V)
-    ρ[i,j] = gs * (ρ_ij*gs)
-end
-es_rho, vs_rho = eigen(ρ)
-pd[(n),ju] = es_rho[end] / N
-end;
-
 
 heatmap(collect(jurange ) .* 0.02, collect(Nrange) .+ 1, pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
 heatmap(collect(jurange ) .* 0.02, collect(Nrange) .+ 1, pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")

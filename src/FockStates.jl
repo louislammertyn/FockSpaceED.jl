@@ -33,18 +33,18 @@ end
 dimension(ufs::U1FockSpace) = prod(ufs.geometry) * (min(ufs.cutoff, ufs.particle_number))
 dimension(ufs::UnrestrictedFockSpace) = prod(ufs.geometry) * ufs.cutoff
 
-function basisFS(space::U1FockSpace; nodata=false)
+function basisFS(space::U1FockSpace; nodata=false, savedata=false)
     savename = "basis_u1_geom=$(join(space.geometry, 'x'))_cutoff=$(space.cutoff)_N=$(space.particle_number).jld2"
     if  (savename ∈ readdir("./src/assets/states")) & !nodata
         data = load("./src/assets/states/$savename")
         return data["states"]
 
-    elseif !(savename ∈ readdir("./src/assets/states")) & !nodata
+    elseif !(savename ∈ readdir("./src/assets/states")) & savedata
         states = all_states_U1(space)
         save("./src/assets/states/$savename", Dict("states"=>states))
         return states
 
-    elseif !(savename ∈ readdir("./src/assets/states")) & nodata
+    elseif !(savename ∈ readdir("./src/assets/states")) 
         return all_states_U1(space)
     end
 
@@ -183,7 +183,9 @@ end
 
 Base.:*(state::FockState, c::Number) = c * state
 
-Base.:*(state1::FockState, state2::FockState) = (state1.occupations == state2.occupations) ? state1.coefficient' * state2.coefficient : 0
+Base.:*(state1::FockState, state2::FockState) = (state1.occupations == state2.occupations) ? state1.coefficient' * state2.coefficient : Complex(0)
+
+dot(state1::FockState, state2::FockState)::ComplexF64 = state1 * state2
 
 function Base.:*(c::Number, mstate::MultipleFockState)
     new_states = [FockState(s.occupations, c * s.coefficient, s.space) for s in mstate.states]
@@ -212,12 +214,20 @@ function Base.:*(mstate1::MultipleFockState, mstate2::MultipleFockState)
     return c
 end
 
-# Define VectorInterface.jl necessities
-VectorInterface.similar(x::AbstractFockState) = MyVec(zeros(length(x.data)))
-VectorInterface.copy!(y::MyVec, x::MyVec) = (y.data .= x.data; y)
-VectorInterface.dot(x::MyVec, y::MyVec) = dot(x.data, y.data)
-VectorInterface.axpy!(α, x::MyVec, y::MyVec) = (y.data .+= α .* x.data; y)
-VectorInterface.scale!(α, x::MyVec) = (x.data .*= α; x)
+# MutableFockstate operations
+
+Base.:*(c::Number, mfs::MutableFockState) = MutableFockState(copy(mfs.occupations), c * mfs.coefficient, mfs.space)
+Base.:*(mfs::MutableFockState, c::Number) = c * mfs
+Base.:*(f::FockState, mfs::MutableFockState) = f.coefficient' * mfs.coefficient
+Base.:*(mfs::MutableFockState, f::FockState) = f.coefficient * mfs.coefficient'
+
+function mul_Mutable!(c::Number, mfs::MutableFockState) 
+    mfs.coefficient *= c
+end
+function mu_Mutable!(mfs::MutableFockState, c::Number) 
+    mul_Mutable!(c, mfs)
+end
+
 
 ######### 2. Basic states instantiation and functionalities ########
 # Create a multi-mode basis state |n₁, n₂, ..., n_N⟩
@@ -373,27 +383,33 @@ function all_states_U1( V::UnrestrictedFockSpace)
     return states
 end
 
-function bounded_compositions(N, L, cutoff)
-    result = Vector{Vector{Int}}()
-    buffer = Vector{Int}(undef, L)
 
-    function recurse(pos, remaining)
-        if pos == L
-            if remaining <= cutoff
-                buffer[pos] = remaining
-                push!(result, copy(buffer))
-            end
-            return
-        end
-
-        for x in 0:min(remaining, cutoff)
-            buffer[pos] = x
-            recurse(pos + 1, remaining - x)
+function bounded_compositions(N::Int, L::Int, cutoff::Int)
+    cutoff += 1
+    Threads.nthreads() == 1 && @warn "Number of threads is 1, use multithreading for optimised calculations"
+    max_i = cutoff^L  
+    thread_results = [Vector{Vector{Int}}() for _ in 1:Threads.nthreads()]
+    
+    Threads.@threads for i in 0:max_i-1
+        n = digits(i, base=cutoff)
+        if sum(n) == N && length(n) <= L
+            push!(thread_results[Threads.threadid()], reverse(n))
         end
     end
 
-    recurse(1, N)
-    return result
+    raw = reduce(vcat, thread_results)
+    padded = raw .|> x -> vcat(zeros(Int, L - length(x)), x)
+    sorted = sort(padded, by= x->evalpoly(cutoff, x), rev=true)
+    return sorted
+end
+
+function create_MFS(coefficients::Vector{ComplexF64}, states::Vector{AbstractFockState})
+    total_state = ZeroFockState()
+    for (i,c) in enumerate(coefficients)
+        state = states[i] * (1/states[i].coefficient)
+        total_state += c * state
+    end
+    return cleanup_FS(total_state)
 end
 
 
@@ -424,26 +440,6 @@ end
 
 cleanup_FS(mfs::MutableFockState) = mfs.coefficient == 0 ? ZeroFockState() : to_fock_state(mfs)
 
-Base.:*(c::Number, mfs::MutableFockState) = MutableFockState(copy(mfs.occupations), c * mfs.coefficient, mfs.space)
-Base.:*(mfs::MutableFockState, c::Number) = c * mfs
-Base.:*(f::FockState, mfs::MutableFockState) = f.coefficient' * mfs.coefficient
-Base.:*(mfs::MutableFockState, f::FockState) = f.coefficient * mfs.coefficient'
-
-function mul_Mutable!(c::Number, mfs::MutableFockState) 
-    mfs.coefficient *= c
-end
-function mu_Mutable!(mfs::MutableFockState, c::Number) 
-    mul_Mutable!(c, mfs)
-end
-
-function create_MFS(coefficients::Vector{ComplexF64}, states::Vector{AbstractFockState})
-    total_state = ZeroFockState()
-    for (i,c) in enumerate(coefficients)
-        state = states[i] * (1/states[i].coefficient)
-        total_state += c * state
-    end
-    return cleanup_FS(total_state)
-end
 
 function a_j!(state::MutableFockState, j::Int)
     if j < 1 || j > length(state.occupations)

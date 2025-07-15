@@ -19,7 +19,7 @@ export AbstractFockSpace, U1FockSpace, UnrestrictedFockSpace,
 export fock_state, copy, cleanup_FS, checkU1, basisFS
 export a_j, ad_j
 export norm2FS
-export all_states_U1, create_MFS
+export all_states_U1, create_MFS, apply, dot
 
 export MutableFockState, to_fock_state, reset!, reset2!, norm2FS, cleanup_FS, mul_Mutable!
 export a_j!, ad_j!

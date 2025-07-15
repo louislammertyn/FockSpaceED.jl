@@ -220,6 +220,10 @@ function Base.:*(Ops::MultipleFockOperator, ket::AbstractFockState)
     return new_ket
 end 
 
+function apply(Op::AbstractFockOperator, ket::AbstractFockState)::AbstractFockState
+    return Op * ket
+end
+
 function apply!(Op::FockOperator, ket::MutableFockState)
     for (site, ladder) in reverse(Op.product)
         if ladder
