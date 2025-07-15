@@ -80,20 +80,20 @@ function bounded_base_sums_parallel(base::Int, total::Int, maxlen::Int)
     Threads.@threads for i in 0:max_i-1
         n = digits(i, base=base)
         if sum(n) == total && length(n) <= maxlen
-            push!(thread_results[Threads.threadid()], n)
+            push!(thread_results[Threads.threadid()], reverse(n))
         end
     end
 
     raw = reduce(vcat, thread_results)
     padded = raw .|> x -> vcat(zeros(Int, maxlen - length(x)), x)
-    sorted = sort(padded, by= x->evalpoly(6, x), rev=true)
+    sorted = sort(padded, by= x->evalpoly(base, x), rev=true)
 
     return sorted
 end
 
-N = 10
-L = 10
-@time b = bounded_base_sums_deterministic(N+1, N,L)
+N = 21;
+L = 5;
+@time b = bounded_base_sums_parallel(N+1, N,L)
 
 Threads.nthreads()
 @time filter(i->(sum(i)==5), b)
