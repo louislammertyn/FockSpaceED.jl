@@ -3,6 +3,7 @@ using LinearAlgebra
 using DifferentialEquations
 using JLD2
 using VectorInterface
+using KrylovKit
 
 include("./FockStates.jl")
 include("./FockOps.jl")
@@ -33,7 +34,7 @@ export calculate_matrix_elements,  calculate_matrix_elements_naive, calculate_ma
 export sparseness
 export cleanup_FO, dagger_FO
 export apply!, apply
-export rand_superpos
+export rand_superpos, diagonalise_KR
 
 #####################################################################################################
 #####################################################################################################

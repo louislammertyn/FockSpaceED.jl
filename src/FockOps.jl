@@ -304,7 +304,7 @@ function calculate_matrix_elements_naive(states::Vector{AbstractFockState}, Op::
     return Op_matrix
 end
 
-function sparseness(M::AbstractMatrix)
+function sparseness(M::Matrix{ComplexF64})
     s = 0
     t = 0
     for e in M 
@@ -316,4 +316,20 @@ function sparseness(M::AbstractMatrix)
     return s/t
 end
 
+########## Diagonalisation function for operator matrices ############
+
+function diagonalise_KR(M::Matrix{ComplexF64}; states=5)
+    N = size(M)[1]
+    sparse = sparseness(M)
+    @assert N>1_000 "Matrix is small enough to do LinearAlgebra.eigen()"
+
+    if sparse > .15
+        @warn "The matrix sparseness is smaller than .15 %, no sparsematrix parsing is performed"
+    else 
+        M = sparse(M)
+    end
+    x₀ = rand(ComplexF64, size(M)[1])
+    x₀ ./= norm(x₀) 
+    return eigsolve(M, x₀, howmany=states, which=:SR, T=ComplexF64; ishermitian=true)
+end
 end;

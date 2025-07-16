@@ -84,7 +84,7 @@ U = 1
 J = .1* U
 
 
-N = 15
+N = 18
 geometry = (5,)
 D= length(geometry)
 
@@ -118,8 +118,8 @@ end
 sparseness(M)
 M_s = sparse(M)
 x₀ = rand(ComplexF64, size(M)[1])
-@time es, _, _ = eigsolve(M, x₀, 10, :SR; ishermitian=true);
-@time es, _, _ =  eigsolve(M_s, x₀, 10, :SR; ishermitian=true);
+@time es, _, _ = eigsolve(M, x₀, 3, :SR; ishermitian=true);
+@time es, _, _ =  eigsolve(M_s, x₀, 5, :SR; ishermitian=true);
 es
 es
 es, vs = eigen(Hermitian(M))
