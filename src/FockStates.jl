@@ -185,7 +185,7 @@ Base.:*(state::FockState, c::Number) = c * state
 
 Base.:*(state1::FockState, state2::FockState) = (state1.occupations == state2.occupations) ? state1.coefficient' * state2.coefficient : Complex(0)
 
-dot(state1::FockState, state2::FockState)::ComplexF64 = state1 * state2
+LinearAlgebra.dot(state1::FockState, state2::FockState)::ComplexF64 = state1 * state2
 
 function Base.:*(c::Number, mstate::MultipleFockState)
     new_states = [FockState(s.occupations, c * s.coefficient, s.space) for s in mstate.states]
@@ -214,6 +214,8 @@ function Base.:*(mstate1::MultipleFockState, mstate2::MultipleFockState)
     return c
 end
 
+LinearAlgebra.dot(ms1::MultipleFockState, ms2::MultipleFockState)::ComplexF64 = ms1 * ms2
+
 # MutableFockstate operations
 
 Base.:*(c::Number, mfs::MutableFockState) = MutableFockState(copy(mfs.occupations), c * mfs.coefficient, mfs.space)
@@ -227,7 +229,6 @@ end
 function mu_Mutable!(mfs::MutableFockState, c::Number) 
     mul_Mutable!(c, mfs)
 end
-
 
 ######### 2. Basic states instantiation and functionalities ########
 # Create a multi-mode basis state |n₁, n₂, ..., n_N⟩
@@ -269,11 +270,11 @@ function cleanup_FS(state::FockState)
 end
 
 function cleanup_FS(mstates::MultipleFockState)
-    new_states = filter(s -> s.coefficient != 0, mstates.states)
+    new_states = filter(s -> s.coefficient != 0, mstates.states)    
     if length(new_states) == 1
         return new_states[1]
     else
-        return MultipleFockState(new_states)
+        return MultipleFockState(new_states)   
     end
 end
 

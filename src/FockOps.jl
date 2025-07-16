@@ -220,7 +220,7 @@ function Base.:*(Ops::MultipleFockOperator, ket::AbstractFockState)
     return new_ket
 end 
 
-function apply(Op::AbstractFockOperator, ket::AbstractFockState)::AbstractFockState
+function apply(Op::MultipleFockOperator, ket::MultipleFockState)::MultipleFockState
     return Op * ket
 end
 
@@ -270,7 +270,7 @@ end
 function calculate_matrix_elements_parallel(states::Vector{AbstractFockState}, Ops::MultipleFockOperator)
     n = length(states)
     Op_matrix = zeros(ComplexF64, n, n)
-
+    println("Calculating matrix elements using $(Threads.nthreads()) threads.")
     Threads.@threads for idx in 1:(n*n)
         i = div(idx - 1, n) + 1
         j = mod(idx - 1, n) + 1

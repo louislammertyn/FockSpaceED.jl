@@ -5,23 +5,24 @@ using LinearAlgebra
 using Plots
 using ProgressMeter
 using KrylovKit
+using SparseArrays
 
 
 ############ Phase Diagram ####################
-
-
-Nrange = 5:7
-jurange = 1:2
+juend=15
+L = 4
+Nrange = 1:15
+jurange = 1:juend
 pd_gap = zeros(Nrange[end],jurange[end])
 pd = zeros(Nrange[end],jurange[end])
-#@showprogress 
-@time for n in Nrange, ju in jurange
+ 
+@showprogress for n in Nrange, ju in jurange
 U = 1
-J = (ju*0.02) * U
+J = (ju*(1/juend)) * U
 N = n+1
 E_scale = J+ U*N
 
-geometry = (5,)
+geometry = (L,)
 D=length(geometry)
 
 V = U1FockSpace(geometry,N,N)
@@ -51,25 +52,27 @@ for site in keys(NN)
 end
 
 M = calculate_matrix_elements_parallel(states,H)
+@assert M == M'
+M_s = sparse(Hermitian(M))
+x₀ = rand(ComplexF64, size(M)[1])
+es, vs, _ =  eigsolve(M_s, x₀, 10, :SR; ishermitian=true);
 
-@time es, vs = eigen(Hermitian(M))
-
-gs_coeff = vs[:,1]
+gs_coeff = vs[1]
 pd_gap[(n),ju] =  (es[2]- es[1]) / E_scale
 gs = create_MFS( gs_coeff, states)
 
-ρ = zeros(3,3)
+ρ = zeros(L,L)
 
-for i in 1:3, j in 1:3
+for i in 1:L, j in 1:L
     ρ_ij = FockOperator(((i, true), (j,false)), 1. +0im, V)
-    ρ[i,j] = gs * (ρ_ij*gs)
+    ρ[i,j] = real(gs * (ρ_ij*gs))
 end
 es_rho, vs_rho = eigen(ρ)
 pd[(n),ju] = es_rho[end] / N
 end;
 
-heatmap(collect(jurange ) .* 0.02, collect(Nrange) .+ 1, pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
-heatmap(collect(jurange ) .* 0.02, collect(Nrange) .+ 1, pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")
+heatmap(collect(jurange ) .* (1/juend), collect(Nrange) .+ 1, pd, xlabel="J/U", ylabel="N", color=:viridis, title="Largest eigenvalue ρ")
+heatmap(collect(jurange ) .* (1/juend), collect(Nrange) .+ 1, pd_gap , xlabel="J/U", ylabel="N", color=:magma, title="Many body gap Δ")
 
 
 
@@ -81,12 +84,12 @@ U = 1
 J = .1* U
 
 
-N = 5
+N = 15
 geometry = (5,)
-
+D= length(geometry)
 
 V = U1FockSpace(geometry,N,N)
-states = basis(V)
+states = basisFS(V)
 
 latt = Lattice(geometry)
 sites = latt.sites
@@ -103,17 +106,24 @@ H = ZeroFockOperator()
 for site in keys(NN)
     for n in NN[site]
         index = (site..., n...)
-        H += FockOperator(((sites[site], true), (sites[n], false)), hoppings[index...])
+        H += FockOperator(((sites[site], true), (sites[n], false)), hoppings[index...], V)
     end
 end
 for site in keys(NN)
     i = sites[site]
-    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U)
+    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U, V)
 end
 
-M = calculate_matrix_elements_parallel(states,H)
-
+@time M = calculate_matrix_elements_parallel(states,H)
+sparseness(M)
+M_s = sparse(M)
+x₀ = rand(ComplexF64, size(M)[1])
+@time es, _, _ = eigsolve(M, x₀, 10, :SR; ishermitian=true);
+@time es, _, _ =  eigsolve(M_s, x₀, 10, :SR; ishermitian=true);
+es
+es
 es, vs = eigen(Hermitian(M))
+es
 gs = create_MFS(vs[:,1], states)
 
 density_onsite(gs, sites, geometry)
