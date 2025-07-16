@@ -55,7 +55,7 @@ end
 function density_onsite(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
     matrix = zeros(ComplexF64, geometry)
     for s in keys(sites)
-        n = FockOperator(((sites[s], true), (sites[s], false)), 1. + 0im)
+        n = FockOperator(((sites[s], true), (sites[s], false)), 1. + 0im, state.space)
         matrix[s...] = state * (n * state)
     end
     return matrix
@@ -64,7 +64,7 @@ end
 function density_flucs(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
     matrix = zeros(ComplexF64, geometry)
     for s in keys(sites)
-        n = FockOperator(((sites[s], true), (sites[s], false), (sites[s], true), (sites[s], false)), 1. + 0im)
+        n = FockOperator(((sites[s], true), (sites[s], false), (sites[s], true), (sites[s], false)), 1. + 0im, state.space)
         matrix[s...] = state * (n * state) 
     end
     
@@ -72,11 +72,11 @@ function density_flucs(state::AbstractFockState, sites::Dict, geometry::NTuple{D
 end
 
 function one_body_ρ(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
-    size_m = Tuple(vcat(collect(geometry), collect(geometry)))
+    size_m = (Tuple(vcat(collect(geometry), collect(geometry))))
     ρ = zeros(ComplexF64, size_m)
     for s1 in keys(sites), s2 in keys(sites)
         ind = vcat(collect(s1), collect(s2))
-        Op = FockOperator(((sites[s1], true), (sites[s2], false)), 1. + 0im) 
+        Op = FockOperator(((sites[s1], true), (sites[s2], false)), 1. + 0im, state.space) 
         ρ[ind...] = state * (Op * state)
     end
     return ρ
