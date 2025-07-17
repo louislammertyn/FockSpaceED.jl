@@ -93,7 +93,7 @@ function normal_order(O::FockOperator)
         end
 
         full_ops = vcat(creation_part, annihilation_part)
-        result += FockOperator(Tuple(full_ops), coeff_factor)
+        result += FockOperator(Tuple(full_ops), coeff_factor, O.space)
     end
 
     return result
