@@ -29,27 +29,8 @@ V = U1FockSpace(geometry,N,N)
 states = basisFS(V)
 
 latt = Lattice(geometry)
-ind_v = latt.sites
-NN = latt.NN
 
-hoppings = zeros(ComplexF64, ntuple(i->geometry[mod(i,D)+1] , 2*D))
-for site in keys(NN), n in NN[site]
-    index = (site..., n...)
-    hoppings[index...] = J
-end 
-
-H = ZeroFockOperator()
-
-for site in keys(NN)
-    for n in NN[site]
-        index = (site..., n...)
-        H += FockOperator(((ind_v[site], true), (ind_v[n], false)), hoppings[index...], V)
-    end
-end
-for site in keys(NN)
-    i = ind_v[site]
-    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U, V)
-end
+Kin, Int = Bose_Hubbard_H(V, latt, J, U)
 
 M = calculate_matrix_elements_parallel(states,H)
 @assert M == M'
@@ -92,27 +73,9 @@ V = U1FockSpace(geometry,N,N)
 states = basisFS(V)
 
 latt = Lattice(geometry)
-sites = latt.sites
-NN = latt.NN
 
-hoppings = zeros(ComplexF64, ntuple(i->geometry[mod(i,D)+1] , 2*D))
-for site in keys(NN), n in NN[site]
-    index = (site..., n...)
-    hoppings[index...] = J
-end 
-
-H = ZeroFockOperator()
-
-for site in keys(NN)
-    for n in NN[site]
-        index = (site..., n...)
-        H += FockOperator(((sites[site], true), (sites[n], false)), hoppings[index...], V)
-    end
-end
-for site in keys(NN)
-    i = sites[site]
-    H += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U, V)
-end
+Kin, Int = Bose_Hubbard_H(V, latt, J, U)
+H = Kin + Int
 
 @time M = calculate_matrix_elements_parallel(states,H)
 sparseness(M)

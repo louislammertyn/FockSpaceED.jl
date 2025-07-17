@@ -224,13 +224,11 @@ function apply(Op::MultipleFockOperator, ket::MultipleFockState)::MultipleFockSt
     return Op * ket
 end
 
+
 function apply!(Op::FockOperator, ket::MutableFockState)
     for (site, ladder) in reverse(Op.product)
-        if ladder
-            ad_j!(ket, site)
-        else
-            a_j!(ket, site)
-        end
+        ladder ? ad_j!(ket, site) : a_j!(ket, site)
+        ket.iszero && return nothing 
     end
     mul_Mutable!(Op.coefficient, ket)
 end    
@@ -282,14 +280,17 @@ function calculate_matrix_elements_parallel(states::Vector{AbstractFockState}, O
         for Op in Ops.terms
             reset2!(tmp, ket.occupations, ket.coefficient)
             apply!(Op, tmp)
-            if tuple_vector_equal(bra.occupations, tmp.occupations)
+
+            tmp.iszero && continue
+
+            tuple_vector_equal(bra.occupations, tmp.occupations) && (
                 total_ij += bra.coefficient' * tmp.coefficient
-            end
+            )
+            
         end
 
-        if total_ij != 0. + 0im
-            Op_matrix[i, j] = total_ij
-        end
+        total_ij != 0. + 0im && (Op_matrix[i, j] = total_ij)
+
     end
     return Op_matrix
 end

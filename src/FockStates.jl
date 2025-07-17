@@ -70,6 +70,7 @@ mutable struct MutableFockState <: AbstractFockState
     occupations::Vector{Int}
     coefficient::ComplexF64
     space::AbstractFockSpace
+    iszero::Bool
 end
 
 ########## 0. Pretty printing ###########
@@ -218,13 +219,14 @@ LinearAlgebra.dot(ms1::MultipleFockState, ms2::MultipleFockState)::ComplexF64 = 
 
 # MutableFockstate operations
 
-Base.:*(c::Number, mfs::MutableFockState) = MutableFockState(copy(mfs.occupations), c * mfs.coefficient, mfs.space)
+Base.:*(c::Number, mfs::MutableFockState) = MutableFockState(copy(mfs.occupations), c * mfs.coefficient, mfs.space, mfs.iszero)
 Base.:*(mfs::MutableFockState, c::Number) = c * mfs
 Base.:*(f::FockState, mfs::MutableFockState) = f.coefficient' * mfs.coefficient
 Base.:*(mfs::MutableFockState, f::FockState) = f.coefficient * mfs.coefficient'
 
 function mul_Mutable!(c::Number, mfs::MutableFockState) 
     mfs.coefficient *= c
+    mfs.iszero = zero(mfs.coefficient)
 end
 function mu_Mutable!(mfs::MutableFockState, c::Number) 
     mul_Mutable!(c, mfs)
@@ -416,7 +418,7 @@ end
 
 ################### 6. MutableFockState functionalities ###################
 function MutableFockState(fs::FockState)
-    return MutableFockState(collect(fs.occupations), fs.coefficient, fs.space)
+    return MutableFockState(collect(fs.occupations), fs.coefficient, fs.space, iszero(fs.coefficient))
 end
 
 function to_fock_state(mfs::MutableFockState)
@@ -427,6 +429,7 @@ function reset2!(state::MutableFockState, occs::NTuple{N, Int}, coeff::ComplexF6
     @inbounds for i in eachindex(occs)
         state.occupations[i] = occs[i]
     end
+    state.iszero= iszero(coeff)
     state.coefficient = coeff
     return nothing
 end
@@ -449,6 +452,7 @@ function a_j!(state::MutableFockState, j::Int)
     n = state.occupations[j]
     if n == 0
         state.coefficient = 0.0
+        state.iszero = true
     else
         state.coefficient *= sqrt(n)
         state.occupations[j] -= 1
@@ -462,6 +466,7 @@ function ad_j!(state::MutableFockState, j::Int)
     n = state.occupations[j]
     if n + 1 > state.space.cutoff
         state.coefficient = 0.0
+        state.iszero = true
     else
         state.coefficient *= sqrt(n + 1)
         state.occupations[j] += 1

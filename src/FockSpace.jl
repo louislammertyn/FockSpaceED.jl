@@ -56,5 +56,6 @@ export Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!
 #####################################################################################################
 
 export MB_tensor, Entanglement_Entropy, density_onsite, one_body_ρ, density_flucs, momentum_density
+export Bose_Hubbard_H
 
 end

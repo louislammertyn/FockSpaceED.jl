@@ -86,4 +86,34 @@ function momentum_density(rho)
     
 end
 
+############## Common Hamiltonians ##############
+
+function Bose_Hubbard_H(V::U1FockSpace, lattice::Lattice, J::Number=1., U::Number=1.)
+    N = V.particle_number
+    D = length(V.geometry)
+
+    sites = lattice.sites
+    NN = lattice.NN
+
+    hoppings = zeros(ComplexF64, ntuple(i->V.geometry[mod(i,D)+1] , 2*D))
+    for site in keys(NN), n in NN[site]
+        index = (site..., n...)
+        hoppings[index...] = J
+    end 
+
+    Kin = ZeroFockOperator()
+    Int = ZeroFockOperator()
+
+    for site in keys(NN)
+        for n in NN[site]
+            index = (site..., n...)
+            Kin += FockOperator(((sites[site], true), (sites[n], false)), hoppings[index...], V)
+        end
+    end
+    for site in keys(NN)
+        i = sites[site]
+        Int += FockOperator(((i, true ), (i,true), (i, false), (i, false)), U, V)
+    end
+    return Kin, Int
 end
+end;
