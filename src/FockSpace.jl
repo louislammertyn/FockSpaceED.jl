@@ -4,6 +4,7 @@ using DifferentialEquations
 using JLD2
 using VectorInterface
 using KrylovKit
+using SparseArrays
 
 include("./FockStates.jl")
 include("./FockOps.jl")
