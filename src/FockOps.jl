@@ -321,16 +321,16 @@ end
 
 function diagonalise_KR(M::Matrix{ComplexF64}; states=5)
     N = size(M)[1]
-    sparse = sparseness(M)
+    sp = sparseness(M)
     @assert N>1_000 "Matrix is small enough to do LinearAlgebra.eigen()"
 
-    if sparse > .15
+    if sp > .15
         @warn "The matrix sparseness is smaller than .15 %, no sparsematrix parsing is performed"
     else 
         M = sparse(M)
     end
     x₀ = rand(ComplexF64, size(M)[1])
     x₀ ./= norm(x₀) 
-    return eigsolve(M, x₀, howmany=states, which=:SR, T=ComplexF64; ishermitian=true)
+    return eigsolve(M, x₀, states, :SR, ComplexF64 ; ishermitian=true)
 end
 end;

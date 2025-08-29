@@ -10,7 +10,7 @@ begin
 function MB_tensor(MBstate::MultipleFockState )
     s = MBstate.states[1]
     V = s.space
-    modes = V.num_modes
+    modes = prod(V.geometry)
     dims = ntuple(i-> (V.cutoff+1) , modes)
     C = zeros(ComplexF64, dims)
     for state in MBstate.states
@@ -72,11 +72,12 @@ function density_flucs(state::AbstractFockState, sites::Dict, geometry::NTuple{D
 end
 
 function one_body_ρ(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
+    typeof(state) == MultipleFockState ? V = state.states[1].space : V = state.space
     size_m = (Tuple(vcat(collect(geometry), collect(geometry))))
     ρ = zeros(ComplexF64, size_m)
     for s1 in keys(sites), s2 in keys(sites)
         ind = vcat(collect(s1), collect(s2))
-        Op = FockOperator(((sites[s1], true), (sites[s2], false)), 1. + 0im, state.space) 
+        Op = FockOperator(((sites[s1], true), (sites[s2], false)), 1. + 0im, V) 
         ρ[ind...] = state * (Op * state)
     end
     return ρ
