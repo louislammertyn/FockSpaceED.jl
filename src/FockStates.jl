@@ -387,24 +387,37 @@ function all_states_U1( V::UnrestrictedFockSpace)
 end
 
 
-function bounded_compositions(N::Int, L::Int, cutoff::Int)
+function bounded_compositions(N::Int, L::Int, cutoff::Int; thread_threshold::Int=10_000)
     cutoff += 1
-    Threads.nthreads() == 1 && @warn "Number of threads is 1, use multithreading for optimised calculations"
     max_i = cutoff^L  
-    thread_results = [Vector{Vector{Int}}() for _ in 1:Threads.nthreads()]
     
-    Threads.@threads for i in 0:max_i-1
-        n = digits(i, base=cutoff)
-        if sum(n) == N && length(n) <= L
-            push!(thread_results[Threads.threadid()], reverse(n))
+    if max_i < thread_threshold || Threads.nthreads() == 1
+        # ---------------- Single-threaded version ----------------
+        results = Vector{Vector{Int}}()
+        for i in 0:max_i-1
+            n = digits(i, base=cutoff)
+            if sum(n) == N && length(n) <= L
+                push!(results, reverse(n))
+            end
         end
+    else
+        # ---------------- Multithreaded version ----------------
+        thread_results = [Vector{Vector{Int}}() for _ in 1:Threads.nthreads()]
+        Threads.@threads for i in 0:max_i-1
+            n = digits(i, base=cutoff)
+            if sum(n) == N && length(n) <= L
+                push!(thread_results[Threads.threadid()], reverse(n))
+            end
+        end
+        results = reduce(vcat, thread_results)
     end
 
-    raw = reduce(vcat, thread_results)
-    padded = raw .|> x -> vcat(zeros(Int, L - length(x)), x)
-    sorted = sort(padded, by= x->evalpoly(cutoff, x), rev=true)
+    # Padding & sorting (shared by both paths)
+    padded = results .|> x -> vcat(zeros(Int, L - length(x)), x)
+    sorted = sort(padded, by=x -> evalpoly(cutoff, x), rev=true)
     return sorted
 end
+
 
 function create_MFS(coefficients::Vector{ComplexF64}, states::Vector{AbstractFockState})
     total_state = ZeroFockState()

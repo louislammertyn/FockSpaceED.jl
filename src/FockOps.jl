@@ -333,4 +333,46 @@ function diagonalise_KR(M::Matrix{ComplexF64}; states=5)
     x₀ ./= norm(x₀) 
     return eigsolve(M, x₀, states, :SR, ComplexF64 ; ishermitian=true)
 end
+
+
+############ This function provides an alternative for the all_states_U1() function in terms of operators
+
+function all_states_U1_O(V::U1FockSpace) 
+    geometry = V.geometry
+    L = prod(geometry)
+    N = V.particle_number
+
+    # initial Fock state
+    v_i = zeros(Int, L)
+    v_i[1] = N
+    fs_i = fock_state(V, v_i)
+
+    # nearest-neighbor hopping
+    T = ZeroFockOperator()
+    for i in 1:(L-1)
+        T += FockOperator(((i,true),(i+1,false)), 1., V)
+    end
+    T += dagger_FO(T)
+
+    # iterative BFS-like exploration
+    queue = [fs_i]
+    visited = Set([fs_i.occupations])
+
+    while !isempty(queue)
+        s = pop!(queue)
+        ns = T * s
+        if typeof(ns)==FockState
+            ns = MultipleFockState([ns])
+        end
+        for s_new in ns.states
+            if !(s_new.occupations in visited)
+                push!(visited, s_new.occupations)
+                push!(queue, s_new)
+            end
+        end
+    end
+    result::Vector{AbstractFockState} = [fock_state(V, collect(occs)) for occs in visited]
+    return result
+end
+
 end;

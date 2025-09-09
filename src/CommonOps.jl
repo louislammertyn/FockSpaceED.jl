@@ -54,8 +54,13 @@ end
 
 function density_onsite(state::AbstractFockState, sites::Dict, geometry::NTuple{D, Int64}) where D
     matrix = zeros(ComplexF64, geometry)
+    if typeof(state) == MultipleFockState
+        V = state.states[1].space
+    else
+        V = state.space
+    end
     for s in keys(sites)
-        n = FockOperator(((sites[s], true), (sites[s], false)), 1. + 0im, state.space)
+        n = FockOperator(((sites[s], true), (sites[s], false)), 1. + 0im, V)
         matrix[s...] = state * (n * state)
     end
     return matrix
@@ -117,4 +122,47 @@ function Bose_Hubbard_H(V::U1FockSpace, lattice::Lattice, J::Number=1., U::Numbe
     end
     return Kin, Int
 end
+
+
+function two_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{ComplexF64})
+    two_b_geometry = size(tensor)
+    D = length(two_b_geometry) / 2
+
+    @assert two_b_geometry[1:D] == V.geometry  "The tensor does not match the geometry of the lattice, geometry is $(V.geometry) and tensor geometry is $(size(tensor)[1:D])" 
+    @assert two_b_geometry[1:D] == two_b_geometry[D+1:end] "The tensor does not satisfy the properties of a two body tensor. Please check if the second half of tensori ndices has the same size as the first half."
+
+    map_v_s = lattice.sites_v
+    NN_v = lattice.NN_v
+    Op = ZeroFockOperator()
+
+    for site in keys(NN_v)
+        for n in NN_v[site]
+            Ind = vcat(collect(map_v_s[site]), collect(map_v_s[n])) 
+            Op += FockOperator(((site, true), (n, false)), tensor[Ind...], V)
+        end
+    end
+
+    return Op
+
+end
+
+function get_tensor_two_body(Op::MultipleFockOperator, lattice::Lattice)
+    map_v_s = lattice.sites_v
+    V = Op.terms[1].V
+    geometry = V.geometry
+    two_body_geometry = vcat(collect(geometry), collect(geometry)) |> Tuple
+    tensor = zeros(ComplexF64, two_body_geometry)
+
+    for O in Op.terms
+        if length(O.product) == 2
+            s = map_v_s[O.product[1][1]]
+            n = map_v_s[O.product[2][1]]
+            ind = vcat(collect(s), collect(n))
+            tensor[ind...] = O.coefficient 
+        end
+    end
+end
+
+
+delta(i::Int, j::Int) = (i==j ? 1 : 0)
 end;

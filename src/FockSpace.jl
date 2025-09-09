@@ -1,10 +1,11 @@
 module FockSpace
 using LinearAlgebra
-using DifferentialEquations
+using OrdinaryDiffEq
 using JLD2
 using VectorInterface
 using KrylovKit
 using SparseArrays
+using Plots
 
 include("./FockStates.jl")
 include("./FockOps.jl")
@@ -36,6 +37,7 @@ export sparseness
 export cleanup_FO, dagger_FO
 export apply!, apply
 export rand_superpos, diagonalise_KR
+export all_states_U1_O
 
 #####################################################################################################
 #####################################################################################################
@@ -47,6 +49,7 @@ export commute_first!, normal_order!, _normal_order!, normal_order, commutator
 #####################################################################################################
 
 export vectorise_lattice, lattice_vectorisation_map, Lattice_NN, vector_to_lattice, Lattice, AbstractLattice
+export Lattice_NN_h, vectorise_NN
 
 #####################################################################################################
 #####################################################################################################
