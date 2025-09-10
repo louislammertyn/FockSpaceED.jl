@@ -125,44 +125,178 @@ end
 
 
 function two_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{ComplexF64})
+    # Check tensor shape
     two_b_geometry = size(tensor)
-    D = length(two_b_geometry) / 2
+    D = length(two_b_geometry) ÷ 2
 
-    @assert two_b_geometry[1:D] == V.geometry  "The tensor does not match the geometry of the lattice, geometry is $(V.geometry) and tensor geometry is $(size(tensor)[1:D])" 
-    @assert two_b_geometry[1:D] == two_b_geometry[D+1:end] "The tensor does not satisfy the properties of a two body tensor. Please check if the second half of tensori ndices has the same size as the first half."
+    @assert two_b_geometry[1:D] == V.geometry  "The tensor does not match the geometry of the lattice, geometry is $(V.geometry) vs tensor geometry $(two_b_geometry[1:D])"
+    @assert two_b_geometry[1:D] == two_b_geometry[D+1:end] "The tensor does not satisfy two-body properties: second half of indices must match the first half"
 
     map_v_s = lattice.sites_v
-    NN_v = lattice.NN_v
+    sites = collect(keys(map_v_s))
     Op = ZeroFockOperator()
 
-    for site in keys(NN_v)
-        for n in NN_v[site]
-            Ind = vcat(collect(map_v_s[site]), collect(map_v_s[n])) 
-            Op += FockOperator(((site, true), (n, false)), tensor[Ind...], V)
+    # Loop over all combinations of bra and ket sites
+    for site_bra in sites
+        for site_ket in sites
+            ind = vcat(
+                collect(map_v_s[site_bra]), 
+                collect(map_v_s[site_ket])
+                )
+            coeff = tensor[ind...]
+            if coeff != 0
+                Op += FockOperator(
+                    ((site_bra, true), (site_ket, false)),
+                    coeff,
+                    V
+                )
+            end
+        end
+    end
+
+    return Op + dagger_FO(Op)
+end
+
+
+function four_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{ComplexF64})
+    # Check tensor shape
+    four_b_geometry = size(tensor)
+    D = length(four_b_geometry) ÷ 4
+
+    @assert four_b_geometry[1:D] == V.geometry  "The tensor does not match the lattice geometry: $(V.geometry) vs $(four_b_geometry[1:D])"
+    @assert four_b_geometry[1:D] == four_b_geometry[D+1:2*D] == four_b_geometry[2*D+1:3*D] == four_b_geometry[3*D+1:4*D]  "Tensor does not have consistent 4-body dimensions"
+
+    map_v_s = lattice.sites_v
+    sites = collect(keys(map_v_s))
+    Op = ZeroFockOperator()
+
+    # Loop over all combinations of 4 sites (bra1, bra2, ket1, ket2)
+    for site1 in sites
+        for site2 in sites
+            for site3 in sites
+                for site4 in sites
+                    ind = vcat(
+                        collect(map_v_s[site1]),  # bra1
+                        collect(map_v_s[site2]),  # bra2
+                        collect(map_v_s[site3]),  # ket1
+                        collect(map_v_s[site4])   # ket2
+                    )
+                    coeff = tensor[ind...]
+                    if coeff != 0
+                        Op += FockOperator(
+                            ((site1,true), (site2,true), (site3,false), (site4,false)),
+                            coeff,
+                            V
+                        )
+                    end
+                end
+            end
         end
     end
 
     return Op
-
 end
 
-function get_tensor_two_body(Op::MultipleFockOperator, lattice::Lattice)
+
+function get_tensor_2body(Op::MultipleFockOperator, lattice::Lattice)
+    #@warn "note that this function only takes into account terms of the form a†ᵢaⱼ and ignores all others"
     map_v_s = lattice.sites_v
-    V = Op.terms[1].V
+    V = Op.terms[1].space
     geometry = V.geometry
     two_body_geometry = vcat(collect(geometry), collect(geometry)) |> Tuple
-    tensor = zeros(ComplexF64, two_body_geometry)
+    tensor = zeros(ComplexF64, two_body_geometry...)
 
     for O in Op.terms
-        if length(O.product) == 2
+        if (length(O.product) == 2 ) & (O.product[1][2] & !O.product[2][2])
             s = map_v_s[O.product[1][1]]
             n = map_v_s[O.product[2][1]]
             ind = vcat(collect(s), collect(n))
             tensor[ind...] = O.coefficient 
         end
     end
+
+    return tensor
+
+end
+
+function get_tensor_4body(Op::MultipleFockOperator, lattice::Lattice)
+    #@warn "this function builds a tensor for 4-body terms a†_i a†_j a_k a_l"
+    
+    map_v_s = lattice.sites_v
+    V = Op.terms[1].space
+    geometry = V.geometry
+    
+    # Define 4-body tensor shape: (bra1, bra2, ket1, ket2)
+    four_body_geometry = vcat(collect(geometry), collect(geometry), collect(geometry), collect(geometry)) |> Tuple
+    tensor = zeros(ComplexF64, four_body_geometry...)
+
+    for O in Op.terms
+        # Select 4-body terms
+        if length(O.product) == 4
+            # Check operator structure: 2 daggers followed by 2 annihilation operators
+            daggers = sum(p[2] for p in O.product[1:2])
+            annih = sum(!p[2] for p in O.product[3:4])
+            if (daggers == 2) & (annih == 2)
+                # Map lattice sites to indices
+                bra1 = map_v_s[O.product[1][1]]
+                bra2 = map_v_s[O.product[2][1]]
+                ket1 = map_v_s[O.product[3][1]]
+                ket2 = map_v_s[O.product[4][1]]
+                
+                # Build tensor index
+                ind = vcat(collect(bra1), collect(bra2), collect(ket1), collect(ket2))
+                
+                # Assign coefficient
+                tensor[ind...] = O.coefficient
+            end
+        end
+    end
+
+    return tensor
 end
 
 
-delta(i::Int, j::Int) = (i==j ? 1 : 0)
+
+
+function momentum_space_Op(Op::MultipleFockOperator, lattice::Lattice, dimensions::Tuple)
+    V = Op.terms[1].space
+    geometry = V.geometry
+    D = length(geometry)
+
+    dimensions_bra = dimensions
+    dimensions_ket  = Tuple(collect(dimensions) .+ D)
+
+    # --- 2-body ---
+    real_tensor_2body = get_tensor_2body(Op, lattice)
+    if isempty(real_tensor_2body)
+        tensor_2body_m = zeros(ComplexF64, vcat(geometry, geometry)...)
+    else
+        tensor_2body_m = fft(real_tensor_2body, dimensions_bra)
+        tensor_2body_m = ifft(tensor_2body_m, dimensions_ket) 
+        tensor_2body_m = tensor_2body_m
+    end
+
+    # --- 4-body ---
+    real_tensor_4body = get_tensor_4body(Op, lattice)
+    if isempty(real_tensor_4body)
+        tensor_4body_m = zeros(ComplexF64, vcat(geometry, geometry, geometry, geometry)...)
+    else
+        bra_dims_4body  = collect(dimensions)
+        bra_dims_4body2 = collect(dimensions) .+ D
+        ket_dims_4body  = collect(dimensions) .+ 2*D
+        ket_dims_4body2 = collect(dimensions) .+ 3*D
+
+        tensor_4body_m = fft(real_tensor_4body, bra_dims_4body)
+        tensor_4body_m = fft(tensor_4body_m, bra_dims_4body2)
+        tensor_4body_m = ifft(tensor_4body_m, ket_dims_4body)
+        tensor_4body_m = ifft(tensor_4body_m, ket_dims_4body2)
+        tensor_4body_m .= tensor_4body_m 
+        tensor_4body_m = tensor_4body_m
+    end
+
+    return two_body_Op(V, lattice, tensor_2body_m) + four_body_Op(V, lattice, tensor_4body_m)
+end
+
+
+
 end;

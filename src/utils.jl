@@ -1,0 +1,80 @@
+####### functions of common operations in these calculations ########
+
+begin
+
+nbody_geometry(geometry::Tuple, n::Int) = (n==1) ? geometry : ( geometry |> collect |> g-> repeat(g,n) |> Tuple)
+    
+delta(i::Int,j::Int) = (i==j) ? true : false
+
+make_index(site_tuple::NTuple{N, NTuple{D, Int}}) where {D,N} = site_tuple |> collect .|> collect |> s -> vcat(s...) 
+
+function fill_nbody_tensor(V::U1FockSpace, lattice::Lattice, n::Int, fillingconditions::Tuple ; onlyNN=false)
+    n_geo = nbody_geometry(V.geometry, n)
+    tensor = zeros(ComplexF64, n_geo)
+
+    sites = keys(lattice.sites)
+
+    for s_tuple in product(ntuple(_->sites, n)...)
+        for f in fillingconditions
+            value = f(s_tuple)
+            isapprox(value, 0. +0im; atol=1e-5) && continue
+
+            ind = make_index(s_tuple)
+
+            s_rev = reverse(s_tuple)
+            ind_rev = make_index(s_rev)
+
+            tensor[ind...] = value
+            tensor[ind_rev...] = conj(value)
+            
+        end
+    end
+
+    return tensor
+end
+
+####### different conditions for periodic boundary conditions on NN hopping #######
+
+periodic(i::Int, j::Int, L::Int) = delta(i, mod(j-1, L))
+
+function neighbour(s1::NTuple{D, Int}, s2::NTuple{D, Int}, dim::Int) where {D}
+    diff = collect(s2) .- collect(s1)
+    cond = diff[dim]==1
+    return delta(sum(diff),1) * cond
+end
+
+function periodic_neighbour(s1::NTuple{D, Int}, s2::NTuple{D, Int},
+                            dims::NTuple{D, Bool}, geometry::NTuple{D, Int}) where {D}
+    diff_count = 0
+
+    for d in 1:D
+        if dims[d]  # periodic dimension
+            δ = mod(s2[d] - s1[d] + geometry[d] ÷ 2, geometry[d]) - geometry[d] ÷ 2
+            if abs(δ) == 1
+                diff_count += 1
+            elseif δ != 0
+                return false  # differ by more than 1 in a periodic dim
+            end
+        else
+            # non-periodic dimension must match exactly
+            if s1[d] != s2[d]
+                return false
+            end
+        end
+    end
+
+    return diff_count == 1
+end
+
+    
+
+function helical(s1::Tuple{Int, Int}, s2::Tuple{Int, Int}, dim::Int, L::Int)
+    dim_ = mod(dim, 2) + 1
+    return delta(s1[dim] , L ) * delta(s2[dim],1) * delta(s1[dim_],s2[dim_]-1)
+end
+
+
+
+
+
+end
