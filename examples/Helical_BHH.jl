@@ -10,8 +10,8 @@ using SparseArrays
 
 
 N = 1
-Lx = 4
-Ly = 3
+Lx = 60
+Ly = 2
 
 geometry = (Lx,Ly)
 lattice = Lattice(geometry; periodic=(true,false), helical=(false,true));
@@ -21,10 +21,9 @@ lattice.NN_v
 lattice.sites
 V = U1FockSpace(geometry, N, N)
 states = all_states_U1_O(V)
-#states = all_states_U1(V)
 
-tx = exp(1im *π/3)
-ty= 1 + 2im
+tx = 1
+ty= exp(1im *π/5)
 U = 0
 
 #### Define Conditions for filling the many_body tensors ####
@@ -40,12 +39,51 @@ function fx_2body(sites_tuple)
     return (periodic_neighbour(s1, s2, (true, false), geometry) + neighbour(s1, s2, 1))* tx 
 end
 
-conditions = (fx_2body, fy_2body)
+function fxy_2body(sites_tuple)
+    s1,s2 = sites_tuple
+    return helical_periodic(s1,s2,geometry) * ty 
+end
+
+conditions = (fx_2body, fy_2body, fxy_2body)
 
 t = fill_nbody_tensor(V, lattice, 2, conditions)
 
-t[4,2,:,:]
+H = two_body_Op(V, lattice, t)
+H_k = momentum_space_Op(H, lattice, (1,))
+
+t_k = get_tensor_2body(H_k, lattice)
+
+pl = plot(
+    xlabel = "kₓ",           # replace "units" with physical units if any
+    ylabel = "Eigenvalues ", 
+    title = "Band Structure",
+    legend = false,
+    grid = true,
+    framestyle = :box
+);
+
+# Loop over momenta
+for k in 1:geometry[1]
+    H_k = t_k[k,:,k,:]
+    es, vs = eigen(H_k)
     
+    # k_x value
+    kx = 2π * k / geometry[1]
+    
+    # Plot eigenvalues as scatter
+    scatter!(pl, fill(kx, length(es)), real.(es),
+             marker = (:circle, 2, 0.8, :red), # size 3, alpha 0.8, red edge
+             markerstrokecolor=:red,
+             label = "")
+end
+
+# Display plot
+display(pl)
+
+
+
+
+
 T = zeros(ComplexF64, geometry)
 
 for s in lattice.sites

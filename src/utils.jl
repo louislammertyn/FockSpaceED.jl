@@ -2,6 +2,8 @@
 
 begin
 
+
+
 nbody_geometry(geometry::Tuple, n::Int) = (n==1) ? geometry : ( geometry |> collect |> g-> repeat(g,n) |> Tuple)
     
 delta(i::Int,j::Int) = (i==j) ? true : false
@@ -50,7 +52,7 @@ function periodic_neighbour(s1::NTuple{D, Int}, s2::NTuple{D, Int},
     for d in 1:D
         if dims[d]  # periodic dimension
             δ = mod(s2[d] - s1[d] + geometry[d] ÷ 2, geometry[d]) - geometry[d] ÷ 2
-            if abs(δ) == 1
+            if abs(δ) == 1 & (!neighbour(s1, s2, findfirst(x->true, dims)) & !neighbour(s2, s1, findfirst(x->true, dims)))
                 diff_count += 1
             elseif δ != 0
                 return false  # differ by more than 1 in a periodic dim
@@ -74,7 +76,18 @@ function helical(s1::Tuple{Int, Int}, s2::Tuple{Int, Int}, dim::Int, L::Int)
 end
 
 
-
+function helical_periodic(s1::Tuple{Int,Int}, s2::Tuple{Int,Int}, geometry::Tuple{Int,Int})
+    
+    Lx = geometry[1]
+    Ly = geometry[2]
+    # Condition: s1 = (Lx,Ly) and s2 = (1,1)
+    if s1 == (Lx, Ly) && s2 == (1, 1)
+        return true
+    
+    else
+        return false
+    end
+end
 
 
 end

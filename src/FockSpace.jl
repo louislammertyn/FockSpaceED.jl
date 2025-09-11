@@ -69,5 +69,5 @@ export Bose_Hubbard_H, two_body_Op, four_body_Op, get_tensor_2body, get_tensor_4
 #####################################################################################################
 
 export delta, nbody_geometry, fill_nbody_tensor, make_index
-export periodic_neighbour, neighbour, helical
+export periodic_neighbour, neighbour, helical, helical_periodic
 end

@@ -4,6 +4,7 @@ authors = ["loulamme "]
 version = "0.1.0"
 
 [deps]
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
@@ -19,6 +20,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
 
 [compat]
+ColorSchemes = "3.30.0"
 DifferentialEquations = "7.16.1"
 FFTW = "1.9.0"
 IterTools = "1.10.0"

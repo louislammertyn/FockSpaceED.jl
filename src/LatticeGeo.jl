@@ -84,7 +84,7 @@ function Lattice_NN_h(geometry::NTuple{D, Int}; periodic::NTuple{D,Bool}=ntuple(
             ind_ = mod(ind,2)+1
             if (site[ind] == geometry[ind]) 
                 site[ind_] == geometry[ind_] && continue
-                println(site[ind]== geometry[ind])
+                
                 n = collect(site)
                 n[ind] = 1
                 n[ind_] += 1

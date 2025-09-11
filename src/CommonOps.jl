@@ -134,7 +134,9 @@ function two_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{Com
 
     map_v_s = lattice.sites_v
     sites = collect(keys(map_v_s))
+
     Op = ZeroFockOperator()
+    iszero(tensor) && return Op
 
     # Loop over all combinations of bra and ket sites
     for site_bra in sites
@@ -154,7 +156,7 @@ function two_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{Com
         end
     end
 
-    return Op + dagger_FO(Op)
+    return Op 
 end
 
 
@@ -168,8 +170,10 @@ function four_body_Op(V::U1FockSpace, lattice::Lattice, tensor::AbstractArray{Co
 
     map_v_s = lattice.sites_v
     sites = collect(keys(map_v_s))
-    Op = ZeroFockOperator()
 
+    
+    Op = ZeroFockOperator()
+    iszero(tensor) && return Op
     # Loop over all combinations of 4 sites (bra1, bra2, ket1, ket2)
     for site1 in sites
         for site2 in sites
@@ -268,8 +272,8 @@ function momentum_space_Op(Op::MultipleFockOperator, lattice::Lattice, dimension
 
     # --- 2-body ---
     real_tensor_2body = get_tensor_2body(Op, lattice)
-    if isempty(real_tensor_2body)
-        tensor_2body_m = zeros(ComplexF64, vcat(geometry, geometry)...)
+    if iszero(real_tensor_2body)
+        tensor_2body_m = zeros(ComplexF64,  nbody_geometry(geometry, 2))
     else
         tensor_2body_m = fft(real_tensor_2body, dimensions_bra)
         tensor_2body_m = ifft(tensor_2body_m, dimensions_ket) 
@@ -278,8 +282,9 @@ function momentum_space_Op(Op::MultipleFockOperator, lattice::Lattice, dimension
 
     # --- 4-body ---
     real_tensor_4body = get_tensor_4body(Op, lattice)
-    if isempty(real_tensor_4body)
-        tensor_4body_m = zeros(ComplexF64, vcat(geometry, geometry, geometry, geometry)...)
+    
+    if iszero(real_tensor_4body)
+        tensor_4body_m = zeros(ComplexF64, nbody_geometry(geometry, 4))
     else
         bra_dims_4body  = collect(dimensions)
         bra_dims_4body2 = collect(dimensions) .+ D
