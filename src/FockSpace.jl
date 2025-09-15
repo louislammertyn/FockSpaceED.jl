@@ -8,6 +8,8 @@ using SparseArrays
 using Plots
 using FFTW
 using IterTools
+using Interpolations
+
 
 include("./FockStates.jl")
 include("./FockOps.jl")
@@ -62,8 +64,9 @@ export Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!
 #####################################################################################################
 #####################################################################################################
 
-export MB_tensor, Entanglement_Entropy, density_onsite, one_body_ρ, density_flucs, momentum_density
+export MB_tensor, Entanglement_Entropy, density_onsite, center_of_mass, one_body_ρ, density_flucs, momentum_density
 export Bose_Hubbard_H, two_body_Op, four_body_Op, get_tensor_2body, get_tensor_4body, get_tensor_2body, delta, momentum_space_Op
+
 
 #####################################################################################################
 #####################################################################################################
