@@ -1,10 +1,11 @@
 using Revise
 using FockSpace
 using LinearAlgebra
-using Plots
+using Plots, ColorSchemes
 using ProgressMeter
 using KrylovKit
 using SparseArrays
+
 
 
 
@@ -22,8 +23,8 @@ lattice.sites
 V = U1FockSpace(geometry, N, N)
 states = all_states_U1_O(V)
 
-tx = 1
-ty= exp(1im *π/5)
+tx = -exp(1im *3π/4)
+ty= -1
 U = 0
 
 #### Define Conditions for filling the many_body tensors ####
@@ -62,19 +63,25 @@ pl = plot(
     framestyle = :box
 );
 
-# Loop over momenta
 for k in 1:geometry[1]
     H_k = t_k[k,:,k,:]
     es, vs = eigen(H_k)
     
-    # k_x value
-    kx = 2π * k / geometry[1]
-    
-    # Plot eigenvalues as scatter
-    scatter!(pl, fill(kx, length(es)), real.(es),
-             marker = (:circle, 2, 0.8, :red), # size 3, alpha 0.8, red edge
-             markerstrokecolor=:red,
-             label = "")
+    # Map k to central Brillouin zone [-π, π]
+    kx = 2π * (k-1) / geometry[1]       # original BZ [0,2π)
+    kx = kx > π ? kx - 2π : kx          # shift to [-π, π]
+
+    # Compute localization on orbital i=1 (first row of eigenvectors)
+    loc_i1 = abs2.(vs[1,:])  # weight of each eigenvector on orbital 1
+
+    # Plot each eigenvalue with color indicating localization
+    for α in eachindex(es)
+        scatter!(pl, [kx], [real(es[α])],
+                 marker = (:circle, 3, 0.8),      # size, alpha
+                 markerstrokecolor = :black,
+                 color = get(ColorSchemes.viridis, loc_i1[α]),
+                 label = "")
+    end
 end
 
 # Display plot
